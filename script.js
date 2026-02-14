@@ -105,9 +105,30 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+// 1. Create a single function to handle coordinates
+function handleMove(x, y) {
+    targetX = (x / window.innerWidth) * 2 - 1;
+    targetY = -(y / window.innerHeight) * 2 + 1;
+}
+
+// 2. Add the Mouse listener (for Desktop)
 window.addEventListener('mousemove', (e) => {
-    targetX = (e.clientX / window.innerWidth) * 2 - 1;
-    targetY = -(e.clientY / window.innerHeight) * 2 + 1;
+    handleMove(e.clientX, e.clientY);
 });
 
+// 3. Add Touch listeners (for Mobile)
+window.addEventListener('touchmove', (e) => {
+    // Prevent the phone from scrolling while you touch the pillar
+    if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+}, { passive: false });
+
+window.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+}, { passive: false });
+
+// 4. Finally, start the scene
 init();
