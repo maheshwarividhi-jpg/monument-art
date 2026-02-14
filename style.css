@@ -1,0 +1,22 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevents scrollbars from breaking the flow */
+    /* Deep void gradient for better neon contrast */
+    background: radial-gradient(circle at center, #0a0a1a 0%, #020205 100%);
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    /* Optional: Subtle bloom effect for the neon glow */
+    filter: saturate(1.2) contrast(1.1);
+}
+
+/* Custom cursor to match the lavender aesthetic */
+body {
+    cursor: crosshair;
+}
