@@ -6,8 +6,10 @@ const clock = new THREE.Clock();
 function init() {
     scene = new THREE.Scene();
 
+    const isMobile = window.innerWidth < 768;
     const aspect = window.innerWidth / window.innerHeight;
-    const d = 5;
+    const d = isMobile ? 7 : 5; // Zoom out more on mobile to prevent leaking
+    
     camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
     camera.position.set(10, 10, 20); 
     camera.lookAt(0, 0, 0);
@@ -15,68 +17,70 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 1);
+    renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. THE MATERIAL (Restored Bulb-Lit Lilac)
-    const geo = new THREE.BoxGeometry(1.4, 4, 1.4);
+    // 1. THE REFINED LILAC MATERIAL (Satin Sheen, No Bulb Glare)
+    const pillarWidth = isMobile ? 1.0 : 1.4;
+    const pillarHeight = isMobile ? 3.0 : 4.0;
+    const geo = new THREE.BoxGeometry(pillarWidth, pillarHeight, pillarWidth);
+    
     const mat = new THREE.MeshPhongMaterial({
-        color: 0xc8a2c8,
-        emissive: 0x440066,
-        specular: 0xffffff, 
-        shininess: 150
+        color: 0xb19cd9,      // Soft Lilac
+        specular: 0x333333,   // Reduced reflection intensity
+        shininess: 30,        // Satin finish
+        emissive: 0x221133,   // Subtle internal depth
     });
 
-    // 2. TWO PARALLEL PILLARS
+    // 2. TWO PARALLEL PILLARS (Adjusted spacing for mobile)
+    const spacing = isMobile ? 1.5 : 2.2;
+    
     monumentLeft = new THREE.Mesh(geo, mat);
-    monumentLeft.position.x = -2; // Shifted Left
+    monumentLeft.position.x = -spacing;
     scene.add(monumentLeft);
 
     monumentRight = new THREE.Mesh(geo, mat);
-    monumentRight.position.x = 2; // Shifted Right
+    monumentRight.position.x = spacing;
     scene.add(monumentRight);
 
-    // 3. EDGE-TO-EDGE SILK WAVES
+    // 3. EDGE-TO-EDGE WAVES
     lineGroup = new THREE.Group();
-    const lineCount = 55; 
-    for (let j = 0; j < lineCount; j++) {
+    for (let j = 0; j < 50; j++) {
         const points = [];
         for (let i = 0; i <= 100; i++) {
             points.push(new THREE.Vector3((i / 100 - 0.5) * 60, 0, 0));
         }
         const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
         const lineMat = new THREE.LineBasicMaterial({ 
-            color: new THREE.Color().setHSL(0.5 + (j * 0.005), 0.8, 0.5), 
+            color: new THREE.Color().setHSL(0.5, 0.5, 0.4), 
             transparent: true, 
-            opacity: 0.45 
+            opacity: 0.3 
         });
         const line = new THREE.Line(lineGeo, lineMat);
-        line.position.y = (j / lineCount - 0.5) * 8; 
+        line.position.y = (j / 50 - 0.5) * 10;
         line.userData.offset = j * 0.2;
         lineGroup.add(line);
     }
     lineGroup.position.z = -5;
     scene.add(lineGroup);
 
-    // 4. HIGH VISIBILITY PARTICLES
-    const pCount = 300;
+    // 4. PARTICLES
+    const pCount = 200;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
     for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 50; }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, transparent: true, opacity: 1.0 });
+    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.8 });
     particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // 5. THE "BULB" LIGHTING
-    const bulbLight = new THREE.SpotLight(0xffffff, 6);
-    bulbLight.position.set(0, 15, 15); // Centered to hit both pillars
-    scene.add(bulbLight);
+    // 5. STUDIO LIGHTING (Soft highlights)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
 
-    const pinkFill = new THREE.PointLight(0xff00ff, 4, 50);
-    pinkFill.position.set(-10, 5, 5);
-    scene.add(pinkFill);
-
-    scene.add(new THREE.AmbientLight(0x222222));
+    const fillLight = new THREE.AmbientLight(0x404040, 1.5);
+    scene.add(fillLight);
 
     animate();
 }
@@ -98,35 +102,32 @@ function animate() {
     currentX += (targetX - currentX) * 0.08;
     currentY += (targetY - currentY) * 0.08;
 
-    // LEFT PILLAR (Normal Rotation)
-    monumentLeft.rotation.y = currentX * Math.PI * 2;
-    monumentLeft.rotation.x = currentY * Math.PI * 2;
+    monumentLeft.rotation.y = currentX * Math.PI;
+    monumentLeft.rotation.x = currentY * Math.PI;
 
-    // RIGHT PILLAR (OPPOSITE ROTATION)
-    monumentRight.rotation.y = -currentX * Math.PI * 2;
-    monumentRight.rotation.x = -currentY * Math.PI * 2;
+    monumentRight.rotation.y = -currentX * Math.PI;
+    monumentRight.rotation.x = -currentY * Math.PI;
 
-    // Silk Wave Motion
-    lineGroup.children.forEach((line, i) => {
+    lineGroup.children.forEach((line) => {
         const pos = line.geometry.attributes.position.array;
-        const offset = line.userData.offset;
         for (let j = 0; j < pos.length; j += 3) {
-            const x = pos[j];
-            pos[j + 1] = Math.sin(x * 0.2 + time * 2 + offset) * 1.5;
+            pos[j + 1] = Math.sin(pos[j] * 0.2 + time + line.userData.offset) * 1.5;
         }
         line.geometry.attributes.position.needsUpdate = true;
     });
 
-    particles.position.x += 0.02;
-    if (particles.position.x > 10) particles.position.x = -10;
+    particles.position.x += 0.01;
+    if (particles.position.x > 5) particles.position.x = -5;
 
     renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth < 768;
     const aspect = window.innerWidth / window.innerHeight;
-    const d = 5;
+    const d = isMobile ? 7 : 5;
     camera.left = -d * aspect; camera.right = d * aspect;
+    camera.top = d; camera.bottom = -d;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
