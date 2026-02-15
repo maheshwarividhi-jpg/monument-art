@@ -15,65 +15,64 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 1);
-    renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. THE PREMIUM MONUMENT (Metallic Lilac with Sharp Depth)
+    // 1. RESTORED LILAC MONUMENT (Identical to previous code)
     const geo = new THREE.BoxGeometry(1.6, 4, 1.6);
-    const mat = new THREE.MeshStandardMaterial({
-        color: 0x9370DB,
-        metalness: 1.0,
-        roughness: 0.05,
-        emissive: 0xff00ff,
-        emissiveIntensity: 0.2
+    const mat = new THREE.MeshPhongMaterial({
+        color: 0xc8a2c8,    // ORIGINAL LILAC
+        emissive: 0xff00ff, // HOT PINK GLOW
+        emissiveIntensity: 0.4,
+        shininess: 100,
+        specular: 0xffffff
     });
     monument = new THREE.Mesh(geo, mat);
     scene.add(monument);
 
-    // 2. THE ABSTRACT SILK WAVES (Freepik Reference Style)
+    // 2. EDGE-TO-EDGE SILK WAVES (Horizontal stretch)
     lineGroup = new THREE.Group();
-    const lineCount = 50; // High density for the silk look
+    const lineCount = 60; 
     for (let j = 0; j < lineCount; j++) {
         const points = [];
+        // Stretched to 40 units to ensure it hits edges on all screens
         for (let i = 0; i <= 100; i++) {
-            points.push(new THREE.Vector3((i / 100 - 0.5) * 20, 0, 0));
+            points.push(new THREE.Vector3((i / 100 - 0.5) * 40, 0, 0));
         }
         const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
         const lineMat = new THREE.LineBasicMaterial({ 
-            color: new THREE.Color().setHSL(0.5 + (j * 0.01), 0.8, 0.5), 
+            color: new THREE.Color().setHSL(0.5 + (j * 0.005), 0.8, 0.5), 
             transparent: true, 
-            opacity: 0.15 + (Math.random() * 0.2)
+            opacity: 0.4 // INCREASED VISIBILITY
         });
         const line = new THREE.Line(lineGeo, lineMat);
-        line.position.y = (j / lineCount - 0.5) * 4; // Spread across height
-        line.userData.offset = j * 0.1; // Unique movement offset
+        line.position.y = (j / lineCount - 0.5) * 6; 
+        line.userData.offset = j * 0.15;
         lineGroup.add(line);
     }
-    lineGroup.position.z = -5;
+    lineGroup.position.z = -6;
     scene.add(lineGroup);
 
-    // 3. CLEAR BACKGROUND PARTICLES (Star Dust)
-    const pCount = 200;
+    // 3. BRIGHTER & LARGER PARTICLES
+    const pCount = 250;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
-    for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 30; }
+    for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 40; }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.03, transparent: true, opacity: 0.8 });
+    // Size increased to 0.08 for clear visibility
+    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.9 });
     particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // 4. THE LIGHTING (The "Premium" Secret)
-    const pinkLight = new THREE.PointLight(0xff00ff, 10, 50);
+    // 4. THE LIGHTING
+    const pinkLight = new THREE.PointLight(0xff00ff, 5, 50);
     pinkLight.position.set(5, 5, 10);
     scene.add(pinkLight);
 
-    const cyanLight = new THREE.PointLight(0x00ffff, 8, 50);
+    const cyanLight = new THREE.PointLight(0x00ffff, 4, 50);
     cyanLight.position.set(-10, -2, 5);
     scene.add(cyanLight);
 
-    const topLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    topLight.position.set(0, 10, 0);
-    scene.add(topLight);
+    scene.add(new THREE.AmbientLight(0x222222));
 
     animate();
 }
@@ -96,22 +95,22 @@ function animate() {
     currentY += (targetY - currentY) * 0.05;
 
     monument.rotation.y = currentX * 3.5;
-    monument.rotation.z = currentY * 0.5;
+    monument.rotation.x = currentY * 0.5;
 
-    // SILK LINE MOTION (Multi-frequency waves)
+    // Silk Line Flow
     lineGroup.children.forEach((line, i) => {
         const pos = line.geometry.attributes.position.array;
         const offset = line.userData.offset;
         for (let j = 0; j < pos.length; j += 3) {
             const x = pos[j];
-            // Three layers of sine waves for natural "flow"
-            pos[j + 1] = Math.sin(x * 0.4 + time + offset) * 0.8 + 
-                         Math.cos(x * 0.8 + time * 0.5) * 0.3;
+            pos[j + 1] = Math.sin(x * 0.3 + time * 1.5 + offset) * 1.2;
         }
         line.geometry.attributes.position.needsUpdate = true;
     });
 
-    particles.rotation.y += 0.001;
+    // Visible Particle Motion
+    particles.position.x += 0.01;
+    if (particles.position.x > 5) particles.position.x = -5;
 
     renderer.render(scene, camera);
 }

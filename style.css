@@ -6,7 +6,6 @@ body, html {
     overflow: hidden;
     background-color: #000000;
     touch-action: none; 
-    -webkit-tap-highlight-color: transparent;
 }
 canvas {
     display: block;
