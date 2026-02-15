@@ -4,13 +4,9 @@ body, html {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #020205; /* This keeps your "Void" background */
-    
-    /* ADDED FOR MOBILE: This prevents the phone from scrolling */
+    background-color: #020205; /* Deep Void */
     touch-action: none; 
-    /* ADDED FOR MOBILE: Removes the gray flash when tapping */
     -webkit-tap-highlight-color: transparent;
-    /* ADDED FOR MOBILE: Prevents text highlighting while dragging */
     user-select: none;
 }
 
