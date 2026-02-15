@@ -1,6 +1,7 @@
-let scene, camera, renderer, monument, ribbon, particles = [];
+let scene, camera, renderer, monument, ribbons = [], particles = [];
 let targetX = 0, targetY = 0;
 let currentX = 0, currentY = 0;
+const clock = new THREE.Clock();
 
 function init() {
     scene = new THREE.Scene();
@@ -13,56 +14,68 @@ function init() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x020205, 1); 
+    renderer.setClearColor(0x010103, 1);
+    // Added for better color depth
+    renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. THE MONUMENT (Lilac with Neon Pink Highlights)
+    // 1. THE PREMIUM MONUMENT (Metallic Lilac with Deep Shadows)
     const geo = new THREE.BoxGeometry(1.8, 4.5, 1.8);
-    const mat = new THREE.MeshPhongMaterial({
-        color: 0xc8a2c8,    // Lilac
-        emissive: 0xff00ff, // Hot Pink glow
-        emissiveIntensity: 0.4,
-        shininess: 100,
-        specular: 0xffffff
+    const mat = new THREE.MeshStandardMaterial({
+        color: 0x9370DB,    // Deep Lilac
+        metalness: 0.9,     // High reflection
+        roughness: 0.1,     // Smooth "Premium" finish
+        emissive: 0xff00ff,
+        emissiveIntensity: 0.1
     });
     monument = new THREE.Mesh(geo, mat);
     scene.add(monument);
 
-    // 2. THE BACKGROUND WAVES (Cyan Ribbons)
-    const ribbonGeo = new THREE.PlaneGeometry(40, 15, 40, 40);
-    const ribbonMat = new THREE.MeshPhongMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.15,
-        wireframe: true,
-        side: THREE.DoubleSide
-    });
-    ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
-    ribbon.rotation.x = Math.PI / 2.5;
-    ribbon.position.z = -8;
-    ribbon.position.y = -2;
-    scene.add(ribbon);
+    // 2. HORIZONTAL METALLIC RIBBONS (Abstract & Fluid)
+    const ribbonCount = 3;
+    for(let i = 0; i < ribbonCount; i++) {
+        const rGeo = new THREE.PlaneGeometry(40, 0.5, 100, 1);
+        const rMat = new THREE.MeshStandardMaterial({
+            color: 0x00ffff,
+            emissive: 0x00ffff,
+            emissiveIntensity: 0.5,
+            metalness: 1,
+            roughness: 0.2,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.4
+        });
+        const r = new THREE.Mesh(rGeo, rMat);
+        r.position.set(0, (i - 1) * 2.5, -4); // Spread horizontally
+        scene.add(r);
+        ribbons.push(r);
+    }
 
-    // 3. THE PARTICLES (Floating Dust)
-    const pGeo = new THREE.SphereGeometry(0.02, 8, 8);
-    const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
-    for(let i = 0; i < 120; i++) {
+    // 3. SUBTLE PARTICLES
+    const pGeo = new THREE.SphereGeometry(0.015, 8, 8);
+    const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+    for(let i=0; i<80; i++) {
         const p = new THREE.Mesh(pGeo, pMat);
-        p.position.set((Math.random()-0.5)*30, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+        p.position.set((Math.random()-0.5)*25, (Math.random()-0.5)*15, (Math.random()-0.5)*10);
         scene.add(p);
         particles.push(p);
     }
 
-    // 4. THE LIGHTING
-    const pinkLight = new THREE.PointLight(0xff00ff, 4, 60);
+    // 4. THE LIGHTING (Essential for Shadow Depth)
+    // Key Light (Pink Glow)
+    const pinkLight = new THREE.PointLight(0xff00ff, 8, 50);
     pinkLight.position.set(10, 10, 10);
     scene.add(pinkLight);
 
-    const cyanLight = new THREE.PointLight(0x00ffff, 2, 60);
-    cyanLight.position.set(-10, -5, 10);
+    // Back Light (Cyan Edge Highlight)
+    const cyanLight = new THREE.PointLight(0x00ffff, 5, 50);
+    cyanLight.position.set(-10, -5, -5);
     scene.add(cyanLight);
 
-    scene.add(new THREE.AmbientLight(0x151515));
+    // Subtle Top Light for Definition
+    const topLight = new THREE.DirectionalLight(0xffffff, 1);
+    topLight.position.set(0, 10, 0);
+    scene.add(topLight);
 
     animate();
 }
@@ -74,45 +87,44 @@ function handleInput(x, y) {
 
 window.addEventListener('mousemove', (e) => handleInput(e.clientX, e.clientY));
 window.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 0) {
-        handleInput(e.touches[0].clientX, e.touches[0].clientY);
-    }
+    if (e.touches.length > 0) handleInput(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: false });
 
 function animate() {
     requestAnimationFrame(animate);
-    const time = Date.now() * 0.0008;
+    const time = clock.getElapsedTime();
 
     currentX += (targetX - currentX) * 0.05;
     currentY += (targetY - currentY) * 0.05;
 
-    // Monument Rotation
+    // Monument Animation
     monument.rotation.y = currentX * 3.5;
     monument.rotation.x = currentY * 0.8;
 
-    // Wave Motion
-    const pos = ribbon.geometry.attributes.position.array;
-    for (let i = 0; i < pos.length; i += 3) {
-        // Creates a fluid ripple across the wireframe
-        pos[i + 2] = Math.sin(pos[i] * 0.4 + time * 2) * 1.8;
-    }
-    ribbon.geometry.attributes.position.needsUpdate = true;
+    // HORIZONTAL RIBBON WAVE MOTION
+    ribbons.forEach((r, idx) => {
+        const pos = r.geometry.attributes.position.array;
+        for (let i = 0; i < pos.length; i += 3) {
+            // Complex wave for 'Silk' feel
+            const x = pos[i];
+            pos[i + 2] = Math.sin(x * 0.5 + time + idx) * 1.2;
+        }
+        r.geometry.attributes.position.needsUpdate = true;
+    });
 
     // Particle Drift
     particles.forEach((p, i) => {
-        p.position.y += Math.sin(time + i) * 0.004;
-        p.position.x += Math.cos(time + i) * 0.002;
+        p.position.x += 0.01;
+        if (p.position.x > 15) p.position.x = -15;
     });
 
     renderer.render(scene, camera);
 }
 
-// Ensure the scene stays centered on resize
 window.addEventListener('resize', () => {
     const aspect = window.innerWidth / window.innerHeight;
     const d = 5;
-    camera.left = -d * aspect;
-    camera.right = d * aspect;
+    camera.left = -d * aspect; camera.right = d * aspect;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
