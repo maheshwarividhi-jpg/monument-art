@@ -8,7 +8,8 @@ function init() {
 
     const isMobile = window.innerWidth < 768;
     const aspect = window.innerWidth / window.innerHeight;
-    const d = isMobile ? 7 : 5; // Zoom out more on mobile to prevent leaking
+    // Adjusted zoom for better mobile presence
+    const d = isMobile ? 5.5 : 5; 
     
     camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
     camera.position.set(10, 10, 20); 
@@ -20,20 +21,21 @@ function init() {
     renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. THE REFINED LILAC MATERIAL (Satin Sheen, No Bulb Glare)
-    const pillarWidth = isMobile ? 1.0 : 1.4;
-    const pillarHeight = isMobile ? 3.0 : 4.0;
+    // 1. UPDATED PILLAR GEOMETRY & MATERIAL
+    // Increased mobile size slightly
+    const pillarWidth = isMobile ? 1.3 : 1.4;
+    const pillarHeight = isMobile ? 3.8 : 4.2;
     const geo = new THREE.BoxGeometry(pillarWidth, pillarHeight, pillarWidth);
     
     const mat = new THREE.MeshPhongMaterial({
-        color: 0xb19cd9,      // Soft Lilac
-        specular: 0x333333,   // Reduced reflection intensity
-        shininess: 30,        // Satin finish
-        emissive: 0x221133,   // Subtle internal depth
+        color: 0x8a00c2,      // Rich Purple from your range
+        specular: 0x222222,   // Low reflection to keep color deep
+        shininess: 40,
+        emissive: 0x110022,   // Subtle internal glow
     });
 
-    // 2. TWO PARALLEL PILLARS (Adjusted spacing for mobile)
-    const spacing = isMobile ? 1.5 : 2.2;
+    // 2. TWIN PILLARS
+    const spacing = isMobile ? 1.8 : 2.2;
     
     monumentLeft = new THREE.Mesh(geo, mat);
     monumentLeft.position.x = -spacing;
@@ -43,44 +45,48 @@ function init() {
     monumentRight.position.x = spacing;
     scene.add(monumentRight);
 
-    // 3. EDGE-TO-EDGE WAVES
+    // 3. EDGE-TO-EDGE SILK WAVES
     lineGroup = new THREE.Group();
-    for (let j = 0; j < 50; j++) {
+    for (let j = 0; j < 55; j++) {
         const points = [];
         for (let i = 0; i <= 100; i++) {
             points.push(new THREE.Vector3((i / 100 - 0.5) * 60, 0, 0));
         }
         const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
         const lineMat = new THREE.LineBasicMaterial({ 
-            color: new THREE.Color().setHSL(0.5, 0.5, 0.4), 
+            color: new THREE.Color().setHSL(0.75, 0.8, 0.4), 
             transparent: true, 
-            opacity: 0.3 
+            opacity: 0.35 
         });
         const line = new THREE.Line(lineGeo, lineMat);
-        line.position.y = (j / 50 - 0.5) * 10;
+        line.position.y = (j / 55 - 0.5) * 12;
         line.userData.offset = j * 0.2;
         lineGroup.add(line);
     }
     lineGroup.position.z = -5;
     scene.add(lineGroup);
 
-    // 4. PARTICLES
-    const pCount = 200;
+    // 4. CLEAR PARTICLES
+    const pCount = 300;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
     for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 50; }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.8 });
+    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1, transparent: true, opacity: 0.9 });
     particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // 5. STUDIO LIGHTING (Soft highlights)
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    // 5. ADJUSTED LIGHTING (No more white wash-out)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.8); // Lowered intensity
     mainLight.position.set(5, 10, 7);
     scene.add(mainLight);
 
-    const fillLight = new THREE.AmbientLight(0x404040, 1.5);
+    const fillLight = new THREE.AmbientLight(0x404040, 1.2);
     scene.add(fillLight);
+
+    const sideLight = new THREE.PointLight(0xbe2ed6, 2, 20); // Purple fill light
+    sideLight.position.set(-10, 0, 5);
+    scene.add(sideLight);
 
     animate();
 }
@@ -111,13 +117,13 @@ function animate() {
     lineGroup.children.forEach((line) => {
         const pos = line.geometry.attributes.position.array;
         for (let j = 0; j < pos.length; j += 3) {
-            pos[j + 1] = Math.sin(pos[j] * 0.2 + time + line.userData.offset) * 1.5;
+            pos[j + 1] = Math.sin(pos[j] * 0.2 + time * 1.5 + line.userData.offset) * 1.8;
         }
         line.geometry.attributes.position.needsUpdate = true;
     });
 
-    particles.position.x += 0.01;
-    if (particles.position.x > 5) particles.position.x = -5;
+    particles.position.x += 0.02;
+    if (particles.position.x > 10) particles.position.x = -10;
 
     renderer.render(scene, camera);
 }
@@ -125,7 +131,7 @@ function animate() {
 window.addEventListener('resize', () => {
     const isMobile = window.innerWidth < 768;
     const aspect = window.innerWidth / window.innerHeight;
-    const d = isMobile ? 7 : 5;
+    const d = isMobile ? 5.5 : 5;
     camera.left = -d * aspect; camera.right = d * aspect;
     camera.top = d; camera.bottom = -d;
     camera.updateProjectionMatrix();
