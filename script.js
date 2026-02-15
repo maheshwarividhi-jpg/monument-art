@@ -1,4 +1,4 @@
-let scene, camera, renderer, monument, ribbons = [], particles = [];
+let scene, camera, renderer, monument, lineGroup, particles;
 let targetX = 0, targetY = 0;
 let currentX = 0, currentY = 0;
 const clock = new THREE.Clock();
@@ -9,71 +9,69 @@ function init() {
     const aspect = window.innerWidth / window.innerHeight;
     const d = 5;
     camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
-    camera.position.set(20, 20, 20); 
+    camera.position.set(10, 10, 20); 
     camera.lookAt(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x010103, 1);
-    // Added for better color depth
+    renderer.setClearColor(0x000000, 1);
     renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. THE PREMIUM MONUMENT (Metallic Lilac with Deep Shadows)
-    const geo = new THREE.BoxGeometry(1.8, 4.5, 1.8);
+    // 1. THE PREMIUM MONUMENT (Metallic Lilac with Sharp Depth)
+    const geo = new THREE.BoxGeometry(1.6, 4, 1.6);
     const mat = new THREE.MeshStandardMaterial({
-        color: 0x9370DB,    // Deep Lilac
-        metalness: 0.9,     // High reflection
-        roughness: 0.1,     // Smooth "Premium" finish
+        color: 0x9370DB,
+        metalness: 1.0,
+        roughness: 0.05,
         emissive: 0xff00ff,
-        emissiveIntensity: 0.1
+        emissiveIntensity: 0.2
     });
     monument = new THREE.Mesh(geo, mat);
     scene.add(monument);
 
-    // 2. HORIZONTAL METALLIC RIBBONS (Abstract & Fluid)
-    const ribbonCount = 3;
-    for(let i = 0; i < ribbonCount; i++) {
-        const rGeo = new THREE.PlaneGeometry(40, 0.5, 100, 1);
-        const rMat = new THREE.MeshStandardMaterial({
-            color: 0x00ffff,
-            emissive: 0x00ffff,
-            emissiveIntensity: 0.5,
-            metalness: 1,
-            roughness: 0.2,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.4
+    // 2. THE ABSTRACT SILK WAVES (Freepik Reference Style)
+    lineGroup = new THREE.Group();
+    const lineCount = 50; // High density for the silk look
+    for (let j = 0; j < lineCount; j++) {
+        const points = [];
+        for (let i = 0; i <= 100; i++) {
+            points.push(new THREE.Vector3((i / 100 - 0.5) * 20, 0, 0));
+        }
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const lineMat = new THREE.LineBasicMaterial({ 
+            color: new THREE.Color().setHSL(0.5 + (j * 0.01), 0.8, 0.5), 
+            transparent: true, 
+            opacity: 0.15 + (Math.random() * 0.2)
         });
-        const r = new THREE.Mesh(rGeo, rMat);
-        r.position.set(0, (i - 1) * 2.5, -4); // Spread horizontally
-        scene.add(r);
-        ribbons.push(r);
+        const line = new THREE.Line(lineGeo, lineMat);
+        line.position.y = (j / lineCount - 0.5) * 4; // Spread across height
+        line.userData.offset = j * 0.1; // Unique movement offset
+        lineGroup.add(line);
     }
+    lineGroup.position.z = -5;
+    scene.add(lineGroup);
 
-    // 3. SUBTLE PARTICLES
-    const pGeo = new THREE.SphereGeometry(0.015, 8, 8);
-    const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
-    for(let i=0; i<80; i++) {
-        const p = new THREE.Mesh(pGeo, pMat);
-        p.position.set((Math.random()-0.5)*25, (Math.random()-0.5)*15, (Math.random()-0.5)*10);
-        scene.add(p);
-        particles.push(p);
-    }
+    // 3. CLEAR BACKGROUND PARTICLES (Star Dust)
+    const pCount = 200;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(pCount * 3);
+    for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 30; }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.03, transparent: true, opacity: 0.8 });
+    particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
 
-    // 4. THE LIGHTING (Essential for Shadow Depth)
-    // Key Light (Pink Glow)
-    const pinkLight = new THREE.PointLight(0xff00ff, 8, 50);
-    pinkLight.position.set(10, 10, 10);
+    // 4. THE LIGHTING (The "Premium" Secret)
+    const pinkLight = new THREE.PointLight(0xff00ff, 10, 50);
+    pinkLight.position.set(5, 5, 10);
     scene.add(pinkLight);
 
-    // Back Light (Cyan Edge Highlight)
-    const cyanLight = new THREE.PointLight(0x00ffff, 5, 50);
-    cyanLight.position.set(-10, -5, -5);
+    const cyanLight = new THREE.PointLight(0x00ffff, 8, 50);
+    cyanLight.position.set(-10, -2, 5);
     scene.add(cyanLight);
 
-    // Subtle Top Light for Definition
-    const topLight = new THREE.DirectionalLight(0xffffff, 1);
+    const topLight = new THREE.DirectionalLight(0xffffff, 1.5);
     topLight.position.set(0, 10, 0);
     scene.add(topLight);
 
@@ -97,26 +95,23 @@ function animate() {
     currentX += (targetX - currentX) * 0.05;
     currentY += (targetY - currentY) * 0.05;
 
-    // Monument Animation
     monument.rotation.y = currentX * 3.5;
-    monument.rotation.x = currentY * 0.8;
+    monument.rotation.z = currentY * 0.5;
 
-    // HORIZONTAL RIBBON WAVE MOTION
-    ribbons.forEach((r, idx) => {
-        const pos = r.geometry.attributes.position.array;
-        for (let i = 0; i < pos.length; i += 3) {
-            // Complex wave for 'Silk' feel
-            const x = pos[i];
-            pos[i + 2] = Math.sin(x * 0.5 + time + idx) * 1.2;
+    // SILK LINE MOTION (Multi-frequency waves)
+    lineGroup.children.forEach((line, i) => {
+        const pos = line.geometry.attributes.position.array;
+        const offset = line.userData.offset;
+        for (let j = 0; j < pos.length; j += 3) {
+            const x = pos[j];
+            // Three layers of sine waves for natural "flow"
+            pos[j + 1] = Math.sin(x * 0.4 + time + offset) * 0.8 + 
+                         Math.cos(x * 0.8 + time * 0.5) * 0.3;
         }
-        r.geometry.attributes.position.needsUpdate = true;
+        line.geometry.attributes.position.needsUpdate = true;
     });
 
-    // Particle Drift
-    particles.forEach((p, i) => {
-        p.position.x += 0.01;
-        if (p.position.x > 15) p.position.x = -15;
-    });
+    particles.rotation.y += 0.001;
 
     renderer.render(scene, camera);
 }
