@@ -27,7 +27,7 @@ function init() {
     const geo = new THREE.BoxGeometry(pillarWidth, pillarHeight, pillarWidth);
     
     const mat = new THREE.MeshPhongMaterial({
-        color: 0xffbd59,      
+        color: e03fd8,      
         specular: 0x222222,   
         shininess: 40,
         emissive: 0x110022,   
