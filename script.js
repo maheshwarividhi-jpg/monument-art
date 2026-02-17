@@ -1,4 +1,4 @@
-let scene, camera, renderer, monumentLeft, monumentRight, lineGroup, particles;
+let scene, camera, renderer, monumentLeft, monumentCenter, monumentRight, lineGroup, particles;
 let targetX = 0, targetY = 0;
 let currentX = 0, currentY = 0;
 const clock = new THREE.Clock();
@@ -8,8 +8,7 @@ function init() {
 
     const isMobile = window.innerWidth < 768;
     const aspect = window.innerWidth / window.innerHeight;
-    // Adjusted zoom for better mobile presence
-    const d = isMobile ? 5.5 : 5; 
+    const d = isMobile ? 6 : 5; 
     
     camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
     camera.position.set(10, 10, 20); 
@@ -17,76 +16,76 @@ function init() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 1);
+    
+    // --- CHANGE 1: CALM BACKGROUND ---
+    // Swapping black for a soft "Monument Valley" cream
+    renderer.setClearColor(0xfaf9f6, 1); 
     renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // 1. UPDATED PILLAR GEOMETRY & MATERIAL
-    // Increased mobile size slightly
-    const pillarWidth = isMobile ? 1.3 : 1.4;
-    const pillarHeight = isMobile ? 3.8 : 4.2;
+    const pillarWidth = isMobile ? 1.1 : 1.2;
+    const pillarHeight = isMobile ? 3.5 : 4.5;
     const geo = new THREE.BoxGeometry(pillarWidth, pillarHeight, pillarWidth);
     
-    const mat = new THREE.MeshPhongMaterial({
-        color: 0x8a00c2,      // Rich Purple from your range
-        specular: 0x222222,   // Low reflection to keep color deep
-        shininess: 40,
-        emissive: 0x110022,   // Subtle internal glow
-    });
+    // --- CHANGE 2: DEFINING YOUR 3 SHADES ---
+    const matMint = new THREE.MeshPhongMaterial({ color: 0xb2d8d8, shininess: 30 });
+    const matPink = new THREE.MeshPhongMaterial({ color: 0xffccbb, shininess: 30 });
+    const matOrange = new THREE.MeshPhongMaterial({ color: 0xffbd59, shininess: 30 });
 
-    // 2. TWIN PILLARS
-    const spacing = isMobile ? 1.8 : 2.2;
+    const spacing = isMobile ? 2.0 : 2.5;
     
-    monumentLeft = new THREE.Mesh(geo, mat);
+    // --- CHANGE 3: THE TRIPLE MONUMENTS ---
+    monumentLeft = new THREE.Mesh(geo, matMint);
     monumentLeft.position.x = -spacing;
     scene.add(monumentLeft);
 
-    monumentRight = new THREE.Mesh(geo, mat);
+    monumentCenter = new THREE.Mesh(geo, matPink);
+    monumentCenter.position.x = 0;
+    monumentCenter.position.y = -0.5; // Slight stagger for geometry
+    scene.add(monumentCenter);
+
+    monumentRight = new THREE.Mesh(geo, matOrange);
     monumentRight.position.x = spacing;
     scene.add(monumentRight);
 
-    // 3. EDGE-TO-EDGE SILK WAVES
+    // 4. SILK WAVES (Updated color to match your palette)
     lineGroup = new THREE.Group();
-    for (let j = 0; j < 55; j++) {
+    for (let j = 0; j < 40; j++) {
         const points = [];
         for (let i = 0; i <= 100; i++) {
             points.push(new THREE.Vector3((i / 100 - 0.5) * 60, 0, 0));
         }
         const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
         const lineMat = new THREE.LineBasicMaterial({ 
-            color: new THREE.Color().setHSL(0.75, 0.8, 0.4), 
+            color: 0x8a00c2, // Using your deep violet for the lines
             transparent: true, 
-            opacity: 0.35 
+            opacity: 0.15 
         });
         const line = new THREE.Line(lineGeo, lineMat);
-        line.position.y = (j / 55 - 0.5) * 12;
+        line.position.y = (j / 40 - 0.5) * 15;
         line.userData.offset = j * 0.2;
         lineGroup.add(line);
     }
     lineGroup.position.z = -5;
     scene.add(lineGroup);
 
-    // 4. CLEAR PARTICLES
-    const pCount = 300;
+    // 5. PARTICLES (Made them look like floating dust)
+    const pCount = 200;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
-    for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 50; }
+    for(let i = 0; i < pCount * 3; i++) { pPos[i] = (Math.random() - 0.5) * 40; }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1, transparent: true, opacity: 0.9 });
+    const pMat = new THREE.PointsMaterial({ color: 0x8a00c2, size: 0.05, transparent: true, opacity: 0.4 });
     particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // 5. ADJUSTED LIGHTING (No more white wash-out)
-    const mainLight = new THREE.DirectionalLight(0xffffff, 0.8); // Lowered intensity
+    // 6. LIGHTING (Warmer for ASMR vibe)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
     mainLight.position.set(5, 10, 7);
     scene.add(mainLight);
 
-    const fillLight = new THREE.AmbientLight(0x404040, 1.2);
+    const fillLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(fillLight);
-
-    const sideLight = new THREE.PointLight(0xbe2ed6, 2, 20); // Purple fill light
-    sideLight.position.set(-10, 0, 5);
-    scene.add(sideLight);
 
     animate();
 }
@@ -97,45 +96,35 @@ function handleInput(x, y) {
 }
 
 window.addEventListener('mousemove', (e) => handleInput(e.clientX, e.clientY));
-window.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 0) handleInput(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: false });
 
 function animate() {
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
 
-    currentX += (targetX - currentX) * 0.08;
-    currentY += (targetY - currentY) * 0.08;
+    currentX += (targetX - currentX) * 0.05;
+    currentY += (targetY - currentY) * 0.05;
 
-    monumentLeft.rotation.y = currentX * Math.PI;
-    monumentLeft.rotation.x = currentY * Math.PI;
+    // --- CHANGE 4: DIFFERENT MOTIONS FOR EACH PILLAR ---
+    // Left tilts left, Center spins, Right tilts right
+    monumentLeft.rotation.y = currentX * 2;
+    monumentLeft.rotation.z = Math.sin(time * 0.5) * 0.1;
 
-    monumentRight.rotation.y = -currentX * Math.PI;
-    monumentRight.rotation.x = -currentY * Math.PI;
+    monumentCenter.rotation.x = currentY * 2;
+    monumentCenter.rotation.y = time * 0.2; // Slow constant spin
+
+    monumentRight.rotation.y = -currentX * 2;
+    monumentRight.rotation.z = -Math.sin(time * 0.5) * 0.1;
 
     lineGroup.children.forEach((line) => {
         const pos = line.geometry.attributes.position.array;
         for (let j = 0; j < pos.length; j += 3) {
-            pos[j + 1] = Math.sin(pos[j] * 0.2 + time * 1.5 + line.userData.offset) * 1.8;
+            pos[j + 1] = Math.sin(pos[j] * 0.1 + time + line.userData.offset) * 1.2;
         }
         line.geometry.attributes.position.needsUpdate = true;
     });
 
-    particles.position.x += 0.02;
-    if (particles.position.x > 10) particles.position.x = -10;
-
     renderer.render(scene, camera);
 }
 
-window.addEventListener('resize', () => {
-    const isMobile = window.innerWidth < 768;
-    const aspect = window.innerWidth / window.innerHeight;
-    const d = isMobile ? 5.5 : 5;
-    camera.left = -d * aspect; camera.right = d * aspect;
-    camera.top = d; camera.bottom = -d;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
+// ... Keep your resize listener from the original script ...
 init();
